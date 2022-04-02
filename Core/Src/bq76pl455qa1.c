@@ -10,6 +10,8 @@
 #include "gpio.h"
 #include "slaveConfig.h"
 #include "uart_driver.h"
+extern UART_HandleTypeDef huart1;
+extern volatile uint8_t recBuf1[64];
 
 
 /*Fatal error cases:
@@ -117,7 +119,7 @@ int WriteFrame(BYTE bID, uint16_t wAddr, BYTE *pData, BYTE bLen,
 	*pBuf++ = (wCRC & 0xFF00) >> 8;
 	bPktLen += 2;
 
-	UART_AsyncTransmitString(1,pFrame);
+	UART_AsyncTransmitString(1,pFrame,bPktLen);
 	HAL_Delay(1);
 
 	return bPktLen;
@@ -300,18 +302,16 @@ void InitPL455() {
 	uint32_t wTemp = 0;
 
 
-//	for (int nDev_ID = TOTALBOARDS - 1; nDev_ID >= 0; --nDev_ID) {
-//		// read device ID to see if there is a response
-//		ReadReg(nDev_ID, DEVICE_ADDR, &wTemp, 1, 0); // 0ms timeout
-////		uartReceive();
-//
-//		//ovde zajebava treba proveriti
-//		UART_Receive(5, );
-//
-//
-//
-////		ThisThread::sleep_for(50ms);
-//	}
+	for (int nDev_ID = TOTALBOARDS - 1; nDev_ID >= 0; --nDev_ID) {
+		// read device ID to see if there is a response
+		ReadReg(nDev_ID, DEVICE_ADDR, &wTemp, 1, 0); // 0ms timeout
+//		uartReceive();
+
+//		UART_Receive(1, 4);
+		HAL_Delay(100);
+
+//		ThisThread::sleep_for(50ms);
+	}
 
 	HAL_Delay(1);
 

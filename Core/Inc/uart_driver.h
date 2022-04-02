@@ -10,8 +10,8 @@
 
 #include <stdint.h>
 
-extern void UART_AsyncTransmitString(int id,uint8_t const string[]);
-extern void UART_Receive(int id, int len);
+void UART_AsyncTransmitString(int id, char* pFrame, int bPktLen);
+int UART_Receive(int id, int len);
 
 typedef struct UartMess{
 	uint8_t string;

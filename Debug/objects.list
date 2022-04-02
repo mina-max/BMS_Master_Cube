@@ -2,6 +2,7 @@
 "./Core/Src/PwmIn.o"
 "./Core/Src/bq76pl455qa1.o"
 "./Core/Src/can.o"
+"./Core/Src/dma.o"
 "./Core/Src/gpio.o"
 "./Core/Src/main.o"
 "./Core/Src/master.o"
