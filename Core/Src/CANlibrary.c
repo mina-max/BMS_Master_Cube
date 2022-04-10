@@ -129,3 +129,35 @@ void pack_data_2B( CANMsg* canMsg, uint16_t data, uint8_t position){
 void pack_data_1B( CANMsg* canMsg, uint16_t data, uint8_t position){
 	 canMsg->data[position] = data & 0xFF;
 }
+
+extern volatile uint8_t voltageBuff[10][28];
+//*** CAN send Voltages
+void canSendVoltagesAndTemps(int nDev_ID){
+    //We pack 14 voltages into 2 messages on CAN nework, more info-> CAN PROJEKTOVANJE on Google Drive
+    //First Message, lowest 8 voltages is packed in msgL, ID: LOW
+    //Second Message, higest 6 voltages is packed in msgH, ID: HIGH
+
+    //*** DATA:
+    //-------------------------------------------------------------------------------------------------
+    // Voltages
+    CANMsg msgLVol;        //Lowset message
+    CANMsg msgHVol;        //Highest message
+    //Temperatures
+    CANMsg msgTemp;        //Lowset message
+
+    //*** Voltage CAN Send
+    //-------------------------------------------------------------------------------------------------
+    //
+    int j = 0;
+    for(int i = 0; i < 14; i++){
+        if(i < 7){
+            msgLVol.data[i] = (uint8_t)voltageBuff[nDev_ID][j];      //Value in Volts
+        }else{
+            msgHVol.data[i - 7] = (uint8_t)voltageBuff[nDev_ID][j];   //Value in Volts
+        }
+        j+=2;
+    }
+    canSend(Id_Can_VOLTAGES[nDev_ID][LOW], msgLVol.data);                            //Low part of messages
+    canSend(Id_Can_VOLTAGES[nDev_ID][HIGH], msgHVol.data);                           //High part of messages
+
+}

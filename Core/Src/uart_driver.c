@@ -15,7 +15,7 @@
 
 extern TIM_HandleTypeDef htim4;
 static volatile uint8_t flag = 0;
-extern volatile uint8_t voltageBuff[10][32];
+extern volatile uint8_t voltageBuff[10][28];
 uint8_t uartData5;
 uint8_t uartData1;
 volatile uint8_t procitano=0;
@@ -32,22 +32,38 @@ int numOfBytes = 0;
 int flag1 = 0;
 volatile int rxComplete = 0;
 int firstEntry = 1;
+volatile int done = 0;
+volatile int shutDownSlaves = 0;
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart){
-	numOfMsg++;
-	if(firstEntry) {
-		numOfBytes = recBuf1[0] + 1;
-		if(numOfBytes != 0) {
-			HAL_UART_Receive_IT(huart, recBuf1+1, numOfBytes);
-			firstEntry = 0;
+	if(huart == &huart5) {
+		if (recBuf5[0] == '1')
+		{
+			shutDownSlaves = 1;
 		}
-	} else {
-		numOfBytes = 0;
-		for(int i = 1; i <= 28; i++) {
-				voltageBuff[receiveCnt][i-1] = recBuf1[i];
+		else
+		{
+			shutDownSlaves = 0;
+		}
+		UART_Receive(5, 1);
+	}
+	else
+	{
+		if(firstEntry) {
+			numOfBytes = recBuf1[0] + 1;
+			if(numOfBytes != 0) {
+				HAL_UART_Receive_IT(huart, recBuf1+1, numOfBytes);
+				firstEntry = 0;
 			}
-		receiveCnt=(receiveCnt+1)%10;
-		rxComplete = 1;
-		firstEntry = 1;
+		} else {
+			numOfBytes = 0;
+			firstEntry = 1;
+			for(int i = 1; i <= 28; i++) {
+					voltageBuff[receiveCnt][i-1] = recBuf1[i];
+				}
+			if(receiveCnt == 9)
+						done = 1;
+			receiveCnt=(receiveCnt+1)%10;
+		}
 	}
 
 }
