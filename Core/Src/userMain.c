@@ -30,7 +30,7 @@ extern void clearUartBuffer51();
 int flagovi = 0;
 extern volatile uint8_t recBuf1[64];
 extern uint8_t recBuf5[32];
-int prechargeFlag = 0;
+extern int prechargeFlag = 0;
 int ecuSHDReqFlag = 0;
 extern TIM_HandleTypeDef htim5;
 extern int WriteReg(char bID, uint16_t wAddr, uint64_t dwData, char bLen,
@@ -55,6 +55,25 @@ volatile int counter = 0;
 extern volatile int done;
 extern volatile int shutDownSlaves;
 extern void shutDownSlavesCommand();
+
+extern uint8_t tempBuff[10][14];
+
+static const double A = 0.003354016;
+static const double B = 0.000256524;
+static const double C = 0.00000260597;
+static const double D = 0.0000000632926;
+static const double R25 = 10000.0;             //ohm
+static const double Rref = 1000.0;               //ohm
+static const double VADC = 5.2;                //V
+static const double KelvinToCelzius = -272.15;
+
+double ntcFunction(double R)
+{
+    double res = A + B * log(R/R25) + C *  pow(log(R/R25), 2) + D * pow(log(R/R25), 3);
+    return 1.0/res;
+}
+
+
 
 void uartSendVoltages() {
 	while(!done) {
@@ -83,6 +102,20 @@ void uartSendVoltages() {
 			HAL_Delay(30);
 		}
 		UART_AsyncTransmitString(5, "\n", 1);
+
+		for(int j = 0; j < 14; j += 2){
+			voltage = tempBuff[i][j + 1];
+			voltage |= (tempBuff[i][j]) << 8;
+			float vol = ((float) voltage) / 65536.0 * 5.0;
+			float Rntc = vol * Rref/(VADC - vol);
+			float temp = ntcFunction(Rntc) + KelvinToCelzius;
+			snprintf(volt, 19, "TEMP[%d] = %4f V	", j / 2, temp);
+			UART_AsyncTransmitString(5, volt, 19);
+			UART_AsyncTransmitString(5, "\n", 1);
+		}
+
+		UART_AsyncTransmitString(5, "\n", 1);
+
 	}
 }
 
@@ -113,8 +146,8 @@ int userMain(void) {
 
 		uartSendVoltages();
 		uint8_t data[8] = {0};
-		//canSendVoltages();
-		canSend(300, data);
+		canSendVoltages();
+
 		if(shutDownSlaves) {
 			shutDownSlavesCommand();
 		}

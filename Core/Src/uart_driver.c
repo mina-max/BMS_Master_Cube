@@ -25,6 +25,7 @@ extern volatile int numOfMsg;
 
 volatile uint8_t recBuf1[64];
 uint8_t recBuf5[32];
+uint8_t tempBuff[10][14];
 
 volatile int receiveCnt=0;
 int cntRec=1;
@@ -60,6 +61,9 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart){
 			for(int i = 1; i <= 28; i++) {
 					voltageBuff[receiveCnt][i-1] = recBuf1[i];
 				}
+			for(int i = 1; i <= 14; i++){
+				tempBuff[receiveCnt][i-1] = recBuf1[i + 28];
+			}
 			if(receiveCnt == 9)
 						done = 1;
 			receiveCnt=(receiveCnt+1)%10;

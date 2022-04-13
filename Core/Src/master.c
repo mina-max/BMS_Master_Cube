@@ -34,7 +34,81 @@ uint8_t shdStatus = 0;              //SHD status bit[3]
 uint8_t prechargeFault = 0;         //Precharge Sequence Fault
 
 float imdPeriod = 0;                //Value of IMD Status
+uint8_t prechargeFlag;
 
+void getPrecharged()
+{
+    if (prechargeFlag == 1 && prechargeStatus == 0 && isSHDClosed())
+    {
+    	unsigned char* buff[64];
+        //Precharge
+        UART_AsyncTransmitString(5, buff, sprintf(buff, "*** PRECHARGE ON ***!\n"));
+
+        //On AirMinus
+        openAirMinus();
+        //On Relay
+        openPrChgRelay();
+
+        //Wait on state change
+        HAL_Delay(1000);
+
+        //Check Air and Relay State
+        if (!isAirMinusOpened() || !isPreChgRelayOpened())
+        {
+            //FAULT!
+            openSHDonFAULT();
+            prechargeFault = 1; //Marker Sequnce fault 1: NOT open AirMinus and PreCharge Relay
+            return;
+        }
+        UART_AsyncTransmitString(5, buff, sprintf(buff, "Status AirMinus: %d\n", HAL_GPIO_ReadPin(AirMinusStatus_GPIO_Port, AirMinusStatus_Pin)));
+        UART_AsyncTransmitString(5, buff, sprintf(buff, "Status PreCharge:%d\n", HAL_GPIO_ReadPin(Precharge_Relay_Status_GPIO_Port, Precharge_Relay_Status_Pin)));
+
+        //TO DO: if(U_vehicle > 95% TotalAccVoltage)
+        //TO DO: //Marker Sequnce fault 2:
+
+        //DC link Voltage Realization
+        // ThisThread::sleep_for(HARDWARE_WAIT);
+        // if (currDC_Voltage < 0.95 * totalAccumulatorVoltage)
+        // {
+        //     //FAULT!
+        //     openSHDonFAULT();
+        //     prechargeFault = 2; //Marker Sequnce fault 1: Voltage NOT Realized
+        //     return;
+        // }
+
+        //On AirPlus
+        openAirPlus();
+
+        //Wait on state change
+        HAL_Delay(1000);
+
+        //check Air Plus status
+        if (!isAirPlusOpened())
+        {
+            openSHDonFAULT();
+            prechargeFault = 3; //Marker Sequnce fault 2: NOT Open AirPlus
+            return;
+        }
+        UART_AsyncTransmitString(5, buff, sprintf(buff, "Status AirPlus:  %d\n", HAL_GPIO_ReadPin(AirPlusStatus_GPIO_Port, AirMinusStatus_Pin)));
+
+        //Off Relay
+        closePrChgRelay();
+        //Wait on state change
+        HAL_Delay(1000);
+        //Check if PreCharge relay is closed
+        if (!isPreChgRelayClosed())
+        {
+            openSHDonFAULT();
+            prechargeFault = 4; //Marker Sequnce fault 3: Not closed Precharge relay
+            return;
+        }
+        UART_AsyncTransmitString(5, buff, sprintf(buff, "Status PreCharge:%d\n", HAL_GPIO_ReadPin(Precharge_Relay_Status_GPIO_Port, Precharge_Relay_Status_Pin)));
+        //finised Precharge
+        prechargeStatus = 1;
+        UART_AsyncTransmitString(5, buff, sprintf(buff, "*** PRECHARGE FINISHED ***!\n"));
+
+    }
+}
 
 
 //--------------------- PRECHARGE UTILS --------------------------
